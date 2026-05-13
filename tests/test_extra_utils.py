@@ -77,9 +77,9 @@ class TestUtils(unittest.TestCase):
     def test_try_eval_env_var_does_not_execute_expressions(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             marker_file = os.path.join(temp_dir, "marker.txt")
-            payload = f"__import__('pathlib').Path({marker_file!r}).write_text('pwned')"
+            malicious_expression = f"__import__('pathlib').Path({marker_file!r}).write_text('pwned')"
 
-            actual = extra_utils.try_eval_env_var(payload, list)
+            actual = extra_utils.try_eval_env_var(malicious_expression, list)
 
-            self.assertEqual(payload, actual)
+            self.assertEqual(malicious_expression, actual)
             self.assertFalse(os.path.exists(marker_file))
