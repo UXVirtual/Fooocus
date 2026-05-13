@@ -8,6 +8,7 @@ import gradio as gr
 import modules.config
 import modules.sdxl_styles
 from PIL import Image
+from modules.extra_utils import try_eval_env_var
 from modules.flags import MetadataScheme, Performance, Steps
 from modules.flags import SAMPLERS, CIVITAI_NO_KARRAS
 from modules.hash_cache import sha256_from_cache
@@ -85,7 +86,7 @@ def get_str(key: str, fallback: str | None, source_dict: dict, results: list, de
 def get_list(key: str, fallback: str | None, source_dict: dict, results: list, default=None):
     try:
         h = source_dict.get(key, source_dict.get(fallback, default))
-        h = eval(h)
+        h = try_eval_env_var(h, list)
         assert isinstance(h, list)
         results.append(h)
     except:
@@ -132,7 +133,7 @@ def get_steps(key: str, fallback: str | None, source_dict: dict, results: list, 
 def get_resolution(key: str, fallback: str | None, source_dict: dict, results: list, default=None):
     try:
         h = source_dict.get(key, source_dict.get(fallback, default))
-        width, height = eval(h)
+        width, height = try_eval_env_var(h, (tuple, list))
         formatted = modules.config.add_ratio(f'{width}*{height}')
         if formatted in modules.config.available_aspect_ratios_labels:
             results.append(formatted)
@@ -193,7 +194,7 @@ def get_inpaint_method(key: str, fallback: str | None, source_dict: dict, result
 def get_adm_guidance(key: str, fallback: str | None, source_dict: dict, results: list, default=None):
     try:
         h = source_dict.get(key, source_dict.get(fallback, default))
-        p, n, e = eval(h)
+        p, n, e = try_eval_env_var(h, (tuple, list))
         results.append(float(p))
         results.append(float(n))
         results.append(float(e))
@@ -206,7 +207,7 @@ def get_adm_guidance(key: str, fallback: str | None, source_dict: dict, results:
 def get_freeu(key: str, fallback: str | None, source_dict: dict, results: list, default=None):
     try:
         h = source_dict.get(key, source_dict.get(fallback, default))
-        b1, b2, s1, s2 = eval(h)
+        b1, b2, s1, s2 = try_eval_env_var(h, (tuple, list))
         results.append(True)
         results.append(float(b1))
         results.append(float(b2))
@@ -458,7 +459,7 @@ class A1111MetadataParser(MetadataParser):
     def to_string(self, metadata: dict) -> str:
         data = {k: v for _, k, v in metadata}
 
-        width, height = eval(data['resolution'])
+        width, height = try_eval_env_var(data['resolution'], (tuple, list))
 
         sampler = data['sampler']
         scheduler = data['scheduler']

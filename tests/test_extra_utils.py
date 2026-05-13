@@ -1,5 +1,6 @@
 import numbers
 import os
+import tempfile
 import unittest
 
 import modules.flags
@@ -72,3 +73,13 @@ class TestUtils(unittest.TestCase):
             expected = test["output"]
             actual = extra_utils.try_eval_env_var(value, expected_type)
             self.assertEqual(expected, actual)
+
+    def test_try_eval_env_var_does_not_execute_expressions(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            marker_file = os.path.join(temp_dir, "marker.txt")
+            payload = f"__import__('pathlib').Path({marker_file!r}).write_text('pwned')"
+
+            actual = extra_utils.try_eval_env_var(payload, list)
+
+            self.assertEqual(payload, actual)
+            self.assertFalse(os.path.exists(marker_file))
