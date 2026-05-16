@@ -86,11 +86,141 @@ function modalImageSwitch(offset) {
 }
 
 function saveImage() {
+    const currentButton = selected_gallery_button();
+    const currentImage = currentButton?.querySelector('img') ?? gradioApp().getElementById('modalImage');
 
+    if (!currentImage?.src) {
+        return;
+    }
+
+    saveImageFromUrl(currentImage.src).catch((error) => {
+        console.error('Failed to save image', error);
+        window.open(currentImage.src, '_blank', 'noopener');
+    });
 }
 
 function modalSaveImage(event) {
+    saveImage();
     event.stopPropagation();
+}
+
+function getFilenameFromUrl(url) {
+    try {
+        const parsedUrl = new URL(url, window.location.href);
+        const rawPathname = decodeURIComponent(parsedUrl.pathname || '');
+        const filePathMatch = rawPathname.match(/file=(.+)$/);
+        const pathname = filePathMatch ? filePathMatch[1] : rawPathname;
+        const segments = pathname.split('/').filter(Boolean);
+        const lastSegment = (segments[segments.length - 1] || pathname).split('\\').filter(Boolean).pop();
+
+        if (lastSegment) {
+            return lastSegment;
+        }
+    } catch (error) {
+        console.warn('Could not derive filename from URL', error);
+    }
+
+    return 'image.png';
+}
+
+function getPickerType(filename, mimeType) {
+    const extension = filename.includes('.') ? `.${filename.split('.').pop().toLowerCase()}` : '.png';
+    const resolvedMimeType = mimeType || `image/${extension.slice(1)}`;
+
+    return {
+        description: 'Image',
+        accept: {
+            [resolvedMimeType]: [extension],
+        },
+    };
+}
+
+async function writeBlobWithPicker(blob, filename) {
+    const fileHandle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [getPickerType(filename, blob.type)],
+    });
+
+    const writable = await fileHandle.createWritable();
+
+    try {
+        await writable.write(blob);
+    } finally {
+        await writable.close();
+    }
+}
+
+async function saveImageFromUrl(url, filename) {
+    const response = await fetch(url, {
+        credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const resolvedFilename = filename && filename.includes('.') ? filename : getFilenameFromUrl(url);
+
+    if (typeof window.showSaveFilePicker === 'function') {
+        await writeBlobWithPicker(blob, resolvedFilename);
+        return;
+    }
+
+    if (navigator.msSaveOrOpenBlob) {
+        navigator.msSaveOrOpenBlob(blob, resolvedFilename);
+        return;
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = resolvedFilename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
+async function interceptDownloadClick(event) {
+    const downloadLink = event.target.closest('.image_gallery a[download], .image_gallery .icon-buttons a[download]');
+
+    if (!downloadLink?.href || !downloadLink.href.startsWith('http')) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+        await saveImageFromUrl(downloadLink.href, downloadLink.getAttribute('download') || undefined);
+    } catch (error) {
+        console.error('Intercepted image download failed', error);
+        window.open(downloadLink.href, '_blank', 'noopener');
+    }
+}
+
+async function interceptImageContextMenu(event) {
+    const image = event.target.closest('.image_gallery img, #modalImage');
+
+    if (!image?.src) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+        await saveImageFromUrl(image.src);
+    } catch (error) {
+        console.error('Intercepted image context menu save failed', error);
+        window.open(image.src, '_blank', 'noopener');
+    }
 }
 
 function modalNextImage(event) {
@@ -149,6 +279,8 @@ function setupImageForLightbox(e) {
         showModal(evt);
     }, true);
 
+    e.addEventListener('contextmenu', interceptImageContextMenu, true);
+
 }
 
 function modalZoomSet(modalImage, enable) {
@@ -185,6 +317,9 @@ onAfterUiUpdate(function() {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener('click', interceptDownloadClick, true);
+    document.addEventListener('contextmenu', interceptImageContextMenu, true);
+
     //const modalFragment = document.createDocumentFragment();
     const modal = document.createElement('div');
     modal.onclick = closeModal;
@@ -230,6 +365,7 @@ document.addEventListener("DOMContentLoaded", function() {
     modalImage.onclick = closeModal;
     modalImage.tabIndex = 0;
     modalImage.addEventListener('keydown', modalKeyHandler, true);
+    modalImage.addEventListener('contextmenu', interceptImageContextMenu, true);
     modal.appendChild(modalImage);
 
     const modalPrev = document.createElement('a');

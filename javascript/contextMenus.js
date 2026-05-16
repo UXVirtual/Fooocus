@@ -134,6 +134,36 @@ let cancelGenerateForever = function() {
     clearInterval(window.generateOnRepeatInterval);
 };
 
+function getContextImageTarget() {
+    const activeElement = document.activeElement;
+
+    if (activeElement?.matches?.('#modalImage') && activeElement.src) {
+        return activeElement;
+    }
+
+    const modalImage = gradioApp().querySelector('#modalImage');
+    if (modalImage?.offsetParent && modalImage.src) {
+        return modalImage;
+    }
+
+    return gradioApp().querySelector('.image_gallery img:hover, .image_gallery .thumbnail-item.selected img');
+}
+
+async function saveContextImage() {
+    const image = getContextImageTarget();
+
+    if (!image?.src || typeof saveImageFromUrl !== 'function') {
+        return;
+    }
+
+    try {
+        await saveImageFromUrl(image.src);
+    } catch (error) {
+        console.error('Failed to save image from context menu', error);
+        window.open(image.src, '_blank', 'noopener');
+    }
+}
+
 (function() {
     //Start example Context Menu Items
     let generateOnRepeat = function(genbuttonid, interruptbuttonid) {
@@ -155,6 +185,8 @@ let cancelGenerateForever = function() {
         generateOnRepeat('#generate_button', '#stop_button');
     };
     appendContextMenuOption('#generate_button', 'Generate forever', generateOnRepeatForButtons);
+    appendContextMenuOption('.image_gallery img', 'Save Image As...', saveContextImage);
+    appendContextMenuOption('#modalImage', 'Save Image As...', saveContextImage);
 
 })();
 //End example Context Menu Items
