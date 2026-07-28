@@ -1,0 +1,20 @@
+monochrome, greyscale
+sepia, warm tones
+vintage film, faded colors
+cinematic lighting, teal and orange
+high contrast, dramatic shadows
+soft pastel colors
+vivid saturated colors
+black and white, high contrast
+dreamy, soft focus, ethereal glow
+noir, high contrast, chiaroscuro
+sunset colors, golden hour
+cyberpunk neon, purple and cyan
+muted earth tones
+foggy, desaturated, misty
+retro anime colors, cel shading
+overexposed, washed out
+low key, dimly lit
+high key, bright and airy
+gritty, desaturated, post-apocalyptic
+fantasy colors, iridescent

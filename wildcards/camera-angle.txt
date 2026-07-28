@@ -1,0 +1,20 @@
+from below
+from above
+from side
+looking at viewer
+close-up
+portrait
+upper body
+full body
+wide shot
+extreme close-up
+dutch angle
+overhead view
+profile
+low angle
+fisheye
+selfie
+cowboy shot
+side view
+back view
+from behind
